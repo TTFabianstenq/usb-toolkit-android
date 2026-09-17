@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">USB Toolkit</string>
+    <string name="no_usb_connected">No USB drive connected</string>
+    <string name="connect_usb_hint">Connect a USB flash drive or external storage device via OTG adapter or USB-C port.</string>
+    <string name="format_warning">WARNING: Formatting will permanently erase all data on the selected drive. This cannot be undone.</string>
+    <string name="eject_success">Drive ejected safely</string>
+    <string name="eject_failed">Could not eject drive. Close any open files and try again.</string>
+</resources>
