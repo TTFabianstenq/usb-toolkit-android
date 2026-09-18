@@ -40,15 +40,13 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Create Gradle wrapper if missing
-        run: |
-          if [ ! -f gradlew ]; then
-            gradle wrapper --gradle-version 8.9
-          fi
-          chmod +x gradlew
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -56,14 +54,5 @@ jobs:
         with:
           name: usb-toolkit-debug
           path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Upload release APK
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: usb-toolkit-release-unsigned
-          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
           retention-days: 14
