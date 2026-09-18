@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.usbtoolkit.app.data.UsbDriveInfo
 import com.usbtoolkit.app.util.FileUtils
 import com.usbtoolkit.app.viewmodel.MainViewModel
 
@@ -68,7 +67,7 @@ fun HomeScreen(
         } else {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.UsbOff, null, modifier = Modifier.size(64.dp))
+                    Icon(Icons.Default.Usb, null, modifier = Modifier.size(64.dp))
                     Spacer(Modifier.height(16.dp))
                     Text("No USB drive connected", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
@@ -84,11 +83,11 @@ fun HomeScreen(
         Spacer(Modifier.height(12.dp))
 
         val buttons = listOf(
-            Triple("Format USB", Icons.Default.FormatPaint, onFormat),
-            Triple("Browse USB", Icons.Default.FolderOpen, onBrowse),
+            Triple("Format USB", Icons.Default.Warning, onFormat),
+            Triple("Browse USB", Icons.Default.Folder, onBrowse),
             Triple("Copy Files", Icons.Default.ContentCopy, onCopy),
             Triple("Downloads", Icons.Default.Download, onDownloads),
-            Triple("Safely Eject", Icons.Default.Eject, { drive?.let { viewModel.safelyEject(it) } }),
+            Triple("Safely Eject", Icons.Default.Close, { drive?.let { viewModel.safelyEject(it) } }),
             Triple("Settings", Icons.Default.Settings, onSettings)
         )
 
