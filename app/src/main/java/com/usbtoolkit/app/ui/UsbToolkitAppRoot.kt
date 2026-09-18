@@ -5,8 +5,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,7 +21,9 @@ fun UsbToolkitAppRoot(viewModel: MainViewModel) {
     val drive by viewModel.primaryDrive.collectAsState()
     val settings by viewModel.settings.collectAsState()
 
-    LaunchedEffect(Unit) { viewModel.refreshUsb() }
+    LaunchedEffect(Unit) {
+        viewModel.refreshUsb()
+    }
 
     Scaffold { padding ->
         Column(
@@ -34,13 +34,13 @@ fun UsbToolkitAppRoot(viewModel: MainViewModel) {
                 .padding(16.dp)
         ) {
             Text(
-                "USB Toolkit",
+                text = "USB Toolkit",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "Professional USB storage utility",
+                text = "Professional USB storage utility",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -54,27 +54,35 @@ fun UsbToolkitAppRoot(viewModel: MainViewModel) {
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
-                    Column(Modifier.padding(20.dp)) {
+                    Column(modifier = Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Usb, null, modifier = Modifier.size(32.dp))
+                            Icon(
+                                imageVector = Icons.Default.Usb,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp)
+                            )
                             Spacer(Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    drive!!.name,
+                                    text = drive!!.name,
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Text(if (drive!!.isReadOnly) "Read-only" else "Connected")
+                                Text(
+                                    text = if (drive!!.isReadOnly) "Read-only" else "Connected"
+                                )
                             }
                         }
                         Spacer(Modifier.height(16.dp))
                         LinearProgressIndicator(
                             progress = { drive!!.usedPercent / 100f },
-                            modifier = Modifier.fillMaxWidth().height(10.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(10.dp)
                         )
                         Spacer(Modifier.height(12.dp))
                         Row(
-                            Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Total: ${FileUtils.formatSize(drive!!.totalBytes)}")
@@ -88,19 +96,23 @@ fun UsbToolkitAppRoot(viewModel: MainViewModel) {
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(
-                        Modifier.padding(32.dp),
+                        modifier = Modifier.padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(Icons.Default.Usb, null, modifier = Modifier.size(64.dp))
+                        Icon(
+                            imageVector = Icons.Default.Usb,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp)
+                        )
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            "No USB drive connected",
+                            text = "No USB drive connected",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Connect a USB flash drive via OTG or USB-C.",
+                            text = "Connect a USB flash drive via OTG or USB-C.",
                             textAlign = TextAlign.Center
                         )
                         Spacer(Modifier.height(16.dp))

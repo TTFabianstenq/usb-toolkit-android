@@ -9,7 +9,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.storage.StorageManager
-import android.os.storage.StorageVolume
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import com.usbtoolkit.app.data.FilesystemType
@@ -19,11 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 
-/**
- * Monitors USB / removable storage attachment and detachment.
- * Uses StorageManager + UsbManager. File access relies on SAF / DocumentFile
- * after the user grants tree permission.
- */
 class UsbMonitor(private val context: Context) {
 
     private val _drives = MutableStateFlow<List<UsbDriveInfo>>(emptyList())
@@ -83,11 +77,15 @@ class UsbMonitor(private val context: Context) {
                 val isRemovable = volume.isRemovable
                 if (!isRemovable && !volume.isPrimary) continue
 
-                val path = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val path: String? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     volume.directory?.absolutePath
                 } else {
-                    @Suppress("DEPRECATION")
-                    volume.getPath()
+                    try {
+                        @Suppress("DEPRECATION")
+                        (volume.javaClass.getMethod("getPath").invoke(volume) as? String)
+                    } catch (_: Exception) {
+                        null
+                    }
                 }
 
                 val state = volume.state
@@ -108,7 +106,7 @@ class UsbMonitor(private val context: Context) {
                 val used = (total - free).coerceAtLeast(0)
 
                 val name = volume.getDescription(context) ?: path?.let { File(it).name } ?: "USB Drive"
-                val readOnly = state == Environment.MEDIA_MOUNTED_READ_ONLY || volume.isEmulated.not() && free == 0L && total > 0
+                val readOnly = state == Environment.MEDIA_MOUNTED_READ_ONLY
 
                 list.add(
                     UsbDriveInfo(
@@ -119,7 +117,7 @@ class UsbMonitor(private val context: Context) {
                         totalBytes = total,
                         freeBytes = free,
                         usedBytes = used,
-                        filesystem = detectFs(path),
+                        filesystem = FilesystemType.UNKNOWN,
                         isRemovable = isRemovable,
                         isReadOnly = readOnly
                     )
@@ -128,12 +126,7 @@ class UsbMonitor(private val context: Context) {
         }
 
         if (list.isEmpty()) {
-            val candidates = listOf(
-                "/storage/usb",
-                "/mnt/usb",
-                "/mnt/media_rw",
-                "/storage"
-            )
+            val candidates = listOf("/storage/usb", "/mnt/usb", "/mnt/media_rw", "/storage")
             for (base in candidates) {
                 val dir = File(base)
                 if (!dir.exists() || !dir.isDirectory) continue
@@ -150,7 +143,7 @@ class UsbMonitor(private val context: Context) {
                                 totalBytes = total,
                                 freeBytes = free,
                                 usedBytes = (total - free).coerceAtLeast(0),
-                                filesystem = detectFs(child.absolutePath),
+                                filesystem = FilesystemType.UNKNOWN,
                                 isRemovable = true,
                                 isReadOnly = !child.canWrite()
                             )
@@ -174,28 +167,11 @@ class UsbMonitor(private val context: Context) {
         }
     }
 
-    private fun detectFs(path: String?): FilesystemType {
-        return FilesystemType.UNKNOWN
-    }
-
     fun safelyEject(drive: UsbDriveInfo): Result<Unit> {
-        return try {
-            val sm = context.getSystemService(Context.STORAGE_SERVICE) as StorageManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val volume = sm.storageVolumes.find {
-                    it.uuid == drive.id || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                            it.directory?.absolutePath == drive.path)
-                }
-                if (volume != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    Result.failure(SecurityException("System does not allow third-party apps to unmount volumes. Close all open files and remove the drive safely."))
-                } else {
-                    Result.failure(UnsupportedOperationException("Eject not supported on this Android version via public API."))
-                }
-            } else {
-                Result.failure(UnsupportedOperationException("Eject not supported."))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return Result.failure(
+            UnsupportedOperationException(
+                "System does not allow third-party apps to unmount volumes. Close all open files and remove the drive safely."
+            )
+        )
     }
 }
