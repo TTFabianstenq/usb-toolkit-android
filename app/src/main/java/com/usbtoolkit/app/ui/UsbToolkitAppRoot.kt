@@ -1,102 +1,123 @@
 package com.usbtoolkit.app.ui
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import com.usbtoolkit.app.ui.navigation.NavRoutes
-import com.usbtoolkit.app.ui.screens.*
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.usbtoolkit.app.util.FileUtils
 import com.usbtoolkit.app.viewmodel.MainViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsbToolkitAppRoot(viewModel: MainViewModel) {
-    val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+    val drive by viewModel.primaryDrive.collectAsState()
+    val settings by viewModel.settings.collectAsState()
 
-    val bottomItems = listOf(
-        Triple(NavRoutes.HOME, "Home", Icons.Default.Home),
-        Triple(NavRoutes.BROWSE, "Browse", Icons.Default.Folder),
-        Triple(NavRoutes.DOWNLOADS, "Downloads", Icons.Default.Download),
-        Triple(NavRoutes.DEVICE_FILES, "Device", Icons.Default.Usb),
-        Triple(NavRoutes.SETTINGS, "Settings", Icons.Default.Settings)
-    )
+    LaunchedEffect(Unit) { viewModel.refreshUsb() }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                bottomItems.forEach { (route, label, icon) ->
-                    NavigationBarItem(
-                        icon = { Icon(icon, contentDescription = label) },
-                        label = { Text(label) },
-                        selected = currentDestination?.hierarchy?.any { it.route == route } == true,
-                        onClick = {
-                            navController.navigate(route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Text(
+                "USB Toolkit",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Professional USB storage utility",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(24.dp))
+
+            if (drive != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(Modifier.padding(20.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Usb, null, modifier = Modifier.size(32.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    drive!!.name,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(if (drive!!.isReadOnly) "Read-only" else "Connected")
                             }
                         }
-                    )
+                        Spacer(Modifier.height(16.dp))
+                        LinearProgressIndicator(
+                            progress = { drive!!.usedPercent / 100f },
+                            modifier = Modifier.fillMaxWidth().height(10.dp)
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Total: ${FileUtils.formatSize(drive!!.totalBytes)}")
+                            Text("Free: ${FileUtils.formatSize(drive!!.freeBytes)}")
+                        }
+                    }
+                }
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Usb, null, modifier = Modifier.size(64.dp))
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "No USB drive connected",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Connect a USB flash drive via OTG or USB-C.",
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        OutlinedButton(onClick = { viewModel.refreshUsb() }) {
+                            Text("Refresh")
+                        }
+                    }
                 }
             }
-        }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = NavRoutes.HOME,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(NavRoutes.HOME) {
-                HomeScreen(
-                    viewModel = viewModel,
-                    onFormat = { navController.navigate(NavRoutes.FORMAT) },
-                    onBrowse = { navController.navigate(NavRoutes.BROWSE) },
-                    onCopy = { navController.navigate(NavRoutes.COPY) },
-                    onDownloads = { navController.navigate(NavRoutes.DOWNLOADS) },
-                    onSettings = { navController.navigate(NavRoutes.SETTINGS) }
-                )
-            }
-            composable(NavRoutes.FORMAT) {
-                FormatScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
-            }
-            composable(NavRoutes.BROWSE) {
-                BrowseScreen(viewModel = viewModel)
-            }
-            composable(NavRoutes.COPY) {
-                CopyScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
-            }
-            composable(NavRoutes.DOWNLOADS) {
-                DownloadsScreen(viewModel = viewModel)
-            }
-            composable(NavRoutes.DEVICE_FILES) {
-                DeviceFilesScreen(viewModel = viewModel)
-            }
-            composable(NavRoutes.SETTINGS) {
-                SettingsScreen(
-                    viewModel = viewModel,
-                    onAbout = { navController.navigate(NavRoutes.ABOUT) }
-                )
-            }
-            composable(NavRoutes.ABOUT) {
-                AboutScreen(onBack = { navController.popBackStack() })
-            }
+
+            Spacer(Modifier.height(24.dp))
+            Text("Theme: ${settings.themeMode}")
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Formatting is not supported by third-party apps on modern Android. " +
+                        "Use system Storage settings to format drives."
+            )
         }
     }
 }
